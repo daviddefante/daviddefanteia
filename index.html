@@ -22,9 +22,6 @@
     .chat-input-area input:focus { border-color: #ef9f27; }
     .chat-input-area button { padding: 10px 18px; border-radius: 10px; background: #ef9f27; color: #412402; border: none; font-weight: 700; font-size: 14px; cursor: pointer; }
     .chat-input-area button:hover { background: #fac775; }
-    .api-setup { padding: 1rem 1.25rem; background: #fff7e6; border-bottom: 1px solid #fac775; display: flex; gap: 8px; align-items: center; }
-    .api-setup input { flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #fac775; font-size: 13px; }
-    .api-setup button { padding: 8px 14px; border-radius: 8px; background: #ef9f27; color: #412402; border: none; font-weight: 700; cursor: pointer; font-size: 13px; }
     .powered { text-align: center; font-size: 11px; color: #aaa; padding: 8px; background: #fafaf8; }
   </style>
 </head>
@@ -39,11 +36,6 @@
     </div>
   </div>
 
-  <div class="api-setup" id="apiSetup">
-    <input type="password" id="apiKeyInput" placeholder="Cole sua API Key da Anthropic aqui..." />
-    <button onclick="salvarKey()">Salvar</button>
-  </div>
-
   <div class="chat-messages" id="messages">
     <div class="msg bot">E aí meu povo! Sou o David Defante IA — humor, personalidade e zero mimimi. Me pergunta o que quiser, vai! 😄</div>
   </div>
@@ -56,7 +48,6 @@
 </div>
 
 <script>
-let API_KEY = localStorage.getItem('defante_api_key') || '';
 const SYSTEM = `Você é o David Defante IA — um assistente com personalidade forte, humor brasileiro autêntico, jeito despojado e direto.
 
 Suas características:
@@ -73,20 +64,8 @@ Nunca quebra o personagem. Você é o David Defante IA e ponto final.`;
 const history = [];
 const messagesEl = document.getElementById('messages');
 const input = document.getElementById('userInput');
-const apiSetup = document.getElementById('apiSetup');
-
-if (API_KEY) apiSetup.style.display = 'none';
-
-function salvarKey() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) return alert('Cola a API Key aí!');
-  API_KEY = key;
-  localStorage.setItem('defante_api_key', key);
-  apiSetup.style.display = 'none';
-}
 
 async function sendMsg() {
-  if (!API_KEY) return alert('Primeiro salva sua API Key lá em cima!');
   const text = input.value.trim();
   if (!text) return;
   input.value = '';
@@ -97,21 +76,12 @@ async function sendMsg() {
   const typing = addMsg('Pensando, meu fi...', 'bot typing');
 
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('/api/chat', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        system: SYSTEM,
-        messages: history
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history, system: SYSTEM })
     });
+
     const data = await res.json();
     const reply = data.content.map(b => b.text || '').join('');
     typing.remove();
@@ -119,7 +89,7 @@ async function sendMsg() {
     history.push({ role: 'assistant', content: reply });
   } catch (e) {
     typing.remove();
-    addMsg('Ô véi, deu ruim! Verifica sua API Key e tenta de novo.', 'bot');
+    addMsg('Ô véi, deu ruim! Tenta de novo daqui a pouco.', 'bot');
   }
 }
 
